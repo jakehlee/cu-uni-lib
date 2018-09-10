@@ -38,16 +38,14 @@ def get_affil_info(uni):
 	# 
 	assert "Columbia University: Directory" == driver.title
 
-	result_div = driver.find_elements_by_xpath("//div[@class='table_results_indiv']/table/tbody/tr/td")
-	print(len(result_div))
+	name = driver.find_element_by_xpath("//div[@class='table_results_indiv']/table/tbody/tr/th").text
+	result_tds = driver.find_elements_by_xpath("//div[@class='table_results_indiv']/table/tbody/tr/td")
 
 	# clean up output
 	clean_output = []
-	for a_td in result_div:
+	for a_td in result_tds:
 		if a_td.text != '' and a_td.text != ' ':
 			clean_output.append(a_td.text)
-	print(len(clean_output))
-	print(clean_output)
 
 	if len(clean_output) == 0:
 		# invalid UNI
@@ -55,18 +53,80 @@ def get_affil_info(uni):
 	else:
 		# valid UNI
 		affiliate.valid = True
+
+	# UNI is valid, fill in fields
+	affiliate.name = name
+	t = 0
+	d = 0
+	a = 0
+	for i in range(len(clean_output)):
+		if clean_output[i] == 'Title:' and not t:
+			i += 1
+			affiliate.title = clean_output[i]
+			t = 1
+		elif clean_output[i] == 'Title:' and t:
+			i += 1
+			affiliate.title2 = clean_output[i]
+		if clean_output[i] == 'Tel:':
+			i += 1
+			affiliate.tel = clean_output[i]
+		if clean_output[i] == 'Department:' and not d:
+			i += 1
+			affiliate.dept = clean_output[i]
+			d = 1
+		elif clean_output[i] == 'Department:' and d:
+			i += 1
+			affiliate.dept2 = clean_output[i]
+		if clean_output[i] == 'Campus Tel:':
+			i += 1
+			ct = clean_output[i]
+			if ct[-6:] == '(help)':
+				ct = ct[:-8]
+				affiliate.c_tel = ct
+			else:
+				affiliate.c_tel = ct
+		if clean_output[i] == 'Address:' and not a:
+			i += 1
+			affiliate.addr = clean_output[i]
+			a = 1
+		elif clean_output[i] == 'Address:' and a:
+			i += 1
+			affiliate.addr2 = clean_output[i]
+		if clean_output[i] == 'Email:':
+			i += 1
+			affiliate.email = clean_output[i].split()[0]
+		if clean_output[i] == 'Home Addr:':
+			i += 1
+			affiliate.h_addr = clean_output[i]
+
 	return affiliate
-	#result_div = driver.find_elements_by_css_selector('div.table_results_indiv tr')
-	#for a_row in result_div:
-	#	print(a_row.text)
 
 def test_get_affil_info():
 	test_obj = get_affil_info('lcb50')
 	assert test_obj.uni == 'lcb50'
 	assert test_obj.valid == True
+	assert test_obj.name == 'Lee C. Bollinger'
+	assert test_obj.title == 'President Columbia University; Seth Low Professor of the University'
+	assert test_obj.tel == '+1 212 854 9970'
+	assert test_obj.dept == 'Office of the President'
+	assert test_obj.c_tel == 'MS 4-9970'
+	assert test_obj.addr == '202 Low Library\nMail Code: 4309\nUnited States'
+	assert test_obj.email == 'bollinger@columbia.edu'
+	assert test_obj.dept2 == 'School of Law'
 	test_obj2 = get_affil_info('aaa11')
 	assert test_obj2.uni == 'aaa11'
 	assert test_obj2.valid == False
+	test_obj3 = get_affil_info('jwl3')
+	assert test_obj3.uni == 'jwl3'
+	assert test_obj3.valid == True
+	assert test_obj3.title == 'Senior Lecturer in the Discipline of Computer Science in the Department of Computer Science'
+	assert test_obj3.tel == '+1 212 939 7000'
+	assert test_obj3.dept == 'Department of Computer Science'
+	assert test_obj3.addr == '450 Computer Science Building\nMail Code: 0401\nUnited States'
+	assert test_obj3.email == 'jwlee@barnard.edu'
+	assert test_obj3.title2 == 'University Affiliate'
+	assert test_obj3.dept2 == 'Dean of Studies, Barnard College'
+	assert test_obj3.addr2 == 'None Listed\nNew York NY 10027'
 
 def is_valid_uni(uni):
 	""" Validate the syntax of a uni string """
